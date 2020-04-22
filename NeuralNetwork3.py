@@ -1,32 +1,6 @@
 import csv_loader
 import numpy as np
 
-train_images, train_labels, test_images, test_labels = csv_loader.load_csv()
-
-x_train, x_test = train_images / 255, test_images / 255  # (60000, 784), (10000, 784)
-y_train, y_test = train_labels, test_labels  # (60000, 1), (10000, 1)
-
-# stack together
-X = np.vstack((x_train, x_test))  # (70000, 784)
-y = np.vstack((y_train, y_test))  # (70000, 1)
-
-# one-hot encoding
-digits = 10
-examples = y.shape[0]  # 70000
-y = y.T  # (1, 70000)
-Y_new = np.eye(digits)[y.astype('int32')]
-Y_new = Y_new.T.reshape(digits, examples)  # (10, 70000)
-
-# split the training and testing sets
-m = 60000  # number of training data
-m_test = X.shape[0] - m  # number of testing data, 10000
-X_train, X_test = X[:m].T, X[m:].T  # (784, 60000), (784, 10000)
-Y_train, Y_test = Y_new[:, :m], Y_new[:, m:]  # (10, 60000), (10, 10000)
-
-# Shuffle the training set
-shuffle_index = np.random.permutation(m)
-X_train, Y_train = X_train[:, shuffle_index], Y_train[:, shuffle_index]
-
 
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
@@ -66,22 +40,33 @@ def back_propagate(X, Y, params, cache, m_batch):
     return {"dW1": dW1, "db1": db1, "dW2": dW2, "db2": db2}
 
 
-np.random.seed(138)
+train_images, train_labels, test_images = csv_loader.load_csv()
+
+X_train, X_test = train_images.T / 255, test_images.T / 255  # (784, 60000), (784, 10000)
+# one-hot encoding
+digits = 10
+Y_train = np.eye(digits)[train_labels.T.astype('int32')]
+Y_train = Y_train.T.reshape(digits, train_labels.shape[0])  # (10, 60000)
+
+# Shuffle the training set
+# np.random.seed(138)
+# shuffle_index = np.random.permutation(X_train.shape[1])
+# X_train, Y_train = X_train[:, shuffle_index], Y_train[:, shuffle_index]
 
 # hyperparameters
-n_x = X_train.shape[0]  # 784
-n_h = 64
-learning_rate = 4
-beta = .9
-batch_size = 128
-batches = -(-m // batch_size)
+n_1 = X_train.shape[0]  # 784
+n_2 = 64
+learning_rate = 1
+beta = .5
+batch_size = 100
+batches = -(-X_train.shape[1] // batch_size)
 
 # initialization
 params = {
-    "W1": np.random.randn(n_h, n_x) * np.sqrt(1 / n_x),
-    "b1": np.zeros((n_h, 1)) * np.sqrt(1 / n_x),
-    "W2": np.random.randn(digits, n_h) * np.sqrt(1 / n_h),
-    "b2": np.zeros((digits, 1)) * np.sqrt(1 / n_h)
+    "W1": np.random.randn(n_2, n_1) * np.sqrt(1 / n_1),
+    "b1": np.zeros((n_2, 1)) * np.sqrt(1 / n_1),
+    "W2": np.random.randn(digits, n_2) * np.sqrt(1 / n_2),
+    "b2": np.zeros((digits, 1)) * np.sqrt(1 / n_2)
 }
 
 # initialize momentum
@@ -91,14 +76,13 @@ V_dW2 = np.zeros(params["W2"].shape)
 V_db2 = np.zeros(params["b2"].shape)
 
 # train
-for i in range(9):
+for i in range(20):
 
     permutation = np.random.permutation(X_train.shape[1])
     X_train_shuffled = X_train[:, permutation]
     Y_train_shuffled = Y_train[:, permutation]
 
     for j in range(batches):
-
         # get mini-batch
         begin = j * batch_size
         end = min(begin + batch_size, X_train.shape[1] - 1)
@@ -119,10 +103,16 @@ for i in range(9):
         params["W2"] = params["W2"] - learning_rate * V_dW2
         params["b2"] = params["b2"] - learning_rate * V_db2
 
-    cache = feed_forward(X_train, params)
-    train_cost = compute_loss(Y_train, cache["A2"])
-    cache = feed_forward(X_test, params)
-    test_cost = compute_loss(Y_test, cache["A2"])
-    print("Epoch {}: training cost = {}, test cost = {}".format(i + 1, train_cost, test_cost))
+    # cache = feed_forward(X_train, params)
+    # train_results = np.argmax(cache['A2'], axis=0).reshape(train_labels.shape)
+    # train_correct = sum(int(x == y) for x, y in zip(train_results, train_labels))
+    # cache = feed_forward(X_test, params)
+    # test_results = np.argmax(cache['A2'], axis=0).reshape(test_labels.shape)
+    # test_correct = sum(int(x == y) for x, y in zip(test_results, test_labels))
+    # print("Epoch {}: train set: {} / {} test set: {} / {}"
+    #       .format(i + 1, train_correct, train_labels.shape[0], test_correct, test_labels.shape[0]))
 
+cache = feed_forward(X_test, params)
+test_results = np.argmax(cache['A2'], axis=0).reshape(X_test.shape[1], 1)
+np.savetxt('test_predictions.csv', test_results, delimiter=',', fmt='%d')
 print("Done.")

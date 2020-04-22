@@ -9,7 +9,6 @@ def load_csv():
         train_labels = np.array(list(csv.reader(train_label_file)), dtype='int32')
     with open('test_image.csv', newline='') as test_image_file:
         test_images = np.array(list(csv.reader(test_image_file)), dtype='float64')
-    with open('test_label.csv', newline='') as test_label_file:
-        test_labels = np.array(list(csv.reader(test_label_file)), dtype='int32')
-    return train_images, train_labels, test_images, test_labels
-
+    # with open('test_label.csv', newline='') as test_label_file:
+    #     test_labels = np.array(list(csv.reader(test_label_file)), dtype='int32')
+    return train_images, train_labels, test_images
